@@ -2,6 +2,7 @@ import express from 'express'
 import 'dotenv/config'
 
 import connectDB from './db'
+import Expense from './models/expense.model'
 
 const app = express()
 connectDB()
@@ -10,25 +11,14 @@ const PORT = 5000
 
 app.use(express.json())
 
-const expenses = [
-  {
-    id: 1,
-    description: 'Food',
-    amount: 25,
-    category: 'Food',
-    date: '2026-09-30',
-  },
-]
-
 // Routes
-app.get('/api/expenses', (req, res) => {
+app.get('/api/expenses', async (req, res) => {
+  const expenses = await Expense.find()
   res.json(expenses)
 })
 
-app.get('/api/expenses/:id', (req, res) => {
-  const id = Number(req.params.id)
-
-  const expense = expenses.find(expense => expense.id === id)
+app.get('/api/expenses/:id', async (req, res) => {
+  const expense = await Expense.findById(req.params.id)
 
   if (!expense) {
     return res.status(404).json({
@@ -39,18 +29,38 @@ app.get('/api/expenses/:id', (req, res) => {
   res.json(expense)
 })
 
-app.post('/api/expenses', (req, res) => {
-  const expense: any = {
-    id: expenses.length + 1,
-    description: req.body.description,
-    amount: req.body.amount,
-    category: req.body.category,
-    date: Date.now(),
+app.post('/api/expenses', async (req, res) => {
+  const expense = await Expense.create(req.body)
+  res.status(201).json(expense)
+})
+
+app.put('/api/expenses/:id', async (req, res) => {
+  const expense = await Expense.findByIdAndUpdate(req.params.id, req.body, {
+    new: true,
+    runValidators: true,
+  })
+
+  if (!expense) {
+    return res.status(404).json({
+      message: 'Expense not found',
+    })
   }
 
-  expenses.push(expense)
+  res.json(expense)
+})
 
-  res.status(201).json(expense)
+app.delete('/api/expenses/:id', async (req, res) => {
+  const expense = await Expense.findByIdAndDelete(req.params.id)
+
+  if (!expense) {
+    return res.status(404).json({
+      message: 'Expense not found',
+    })
+  }
+
+  res.json({
+    message: 'Expense deleted successfully',
+  })
 })
 
 app.get('/', (req, res) => {
